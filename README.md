@@ -28,18 +28,6 @@ Em caso de erro, o bot responde:
 
 ---
 
-## Arquivos da entrega
-
-Este repositório deve conter os seguintes arquivos:
-
-- `workflow-chatbot-telegram.json`
-- `README.md`
-
-Arquivo opcional:
-- `docker-compose.yml`
-
----
-
 ## Requisitos atendidos neste workflow
 
 - **Telegram Trigger** como início do fluxo
