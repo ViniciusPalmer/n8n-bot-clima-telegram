@@ -1,0 +1,128 @@
+services:
+  n8n-editor:
+    image: n8nio/n8n:1.122.4
+    container_name: n8n-editor-ftr
+    ports:
+      - 5678:5678
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+      ##Postegres
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+      ##Queue
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      ##Webhook
+      - WEBHOOK_URL=https://unprogressed-xerographic-marguerita.ngrok-free.dev
+      ## OPENWEATHER
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      ## TELEGRAM_BOT_TOKEN
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      ## ALLOW
+      - N8N_ENV_VARS_ALLOW_LIST=OPENWEATHER_API_KEY,TELEGRAM_BOT_TOKEN
+    networks:
+      - n8n-ftr
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  n8n-worker:
+    image: n8nio/n8n:1.122.4
+    command: worker
+    ports:
+      - 5679:5678
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=America/Sao_Paulo
+      - TZ=America/Sao_Paulo
+      - N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+      - N8N_RUNNERS_ENABLED=true
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+      ##Postegres
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=n8n
+      ##Queue
+      - EXECUTIONS_MODE=queue
+      - QUEUE_BULL_REDIS_HOST=redis
+      - QUEUE_BULL_REDIS_PORT=6379
+      - OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS=true
+      ##Webhook
+      - WEBHOOK_URL=https://unprogressed-xerographic-marguerita.ngrok-free.dev
+      ## OPENWEATHER
+      - OPENWEATHER_API_KEY=${OPENWEATHER_API_KEY}
+      ## TELEGRAM_BOT_TOKEN
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      ## ALLOW
+      - N8N_ENV_VARS_ALLOW_LIST=OPENWEATHER_API_KEY,TELEGRAM_BOT_TOKEN
+    networks:
+      - n8n-ftr
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+  postgres:
+    image: ankane/pgvector
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=n8n
+      - POSTGRES_DB=n8n
+    networks:
+      - n8n-ftr
+    restart: always
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - n8n-ftr
+    restart: always
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    ports:
+      - "4040:4040"
+    volumes:
+      - ./ngrok.yml:/etc/ngrok.yml
+    command:
+      - http
+      - --domain=unprogressed-xerographic-marguerita.ngrok-free.dev
+      - n8n-editor-ftr:5678
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTH_TOKEN}
+    networks:
+      - n8n-ftr
+    restart: always
+    depends_on:
+      - n8n-editor
+
+networks:
+  n8n-ftr:
+    driver: bridge
