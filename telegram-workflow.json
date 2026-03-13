@@ -1,0 +1,481 @@
+{
+  "name": "telegram-workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        -272
+      ],
+      "id": "9ac14241-2f11-4d99-be10-86a36dd90cf7",
+      "name": "Telegram Trigger",
+      "webhookId": "cc348f27-2fc6-4002-bc5d-c949c306953c",
+      "credentials": {
+        "telegramApi": {
+          "id": "Gnr1ekVDXHI6RToS",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1907dc10-d747-4812-9f68-8f912a969e75",
+              "name": "queue",
+              "value": "={{ $json.message.text.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[.,:;]/g, '').toLowerCase().trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        -272
+      ],
+      "id": "d1251c6f-1e9b-41c4-a969-a808cf2c510e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "wkuOqcQJ5gVJU4Gv",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/wkuOqcQJ5gVJU4Gv",
+          "cachedResultName": "message-buffer"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "payload": "={{\n  {\n    from: $json.message.from.id,\n    message: {\n    date: $now.toISO(),\n    content: $json.message.text,\n    }\n  }\n}}"
+          },
+          "matchingColumns": [
+            "payload"
+          ],
+          "schema": [
+            {
+              "id": "payload",
+              "displayName": "payload",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        -272
+      ],
+      "id": "629d58a6-ef51-4d38-bbc4-7117758553b4",
+      "name": "Call 'message-buffer'"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ $json.queue }}"
+            },
+            {
+              "name": "units",
+              "value": "metric"
+            },
+            {
+              "name": "lang",
+              "value": "pt_br"
+            },
+            {
+              "name": "appid",
+              "value": "={{ $env.OPENWEATHER_API_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        672,
+        -272
+      ],
+      "id": "0d53f3b7-1628-483c-b2bc-74f71ba2e1ee",
+      "name": "HTTP Request",
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "d3ee7fed-ba99-4ffc-a029-af20eeced3d7",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "object",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        -272
+      ],
+      "id": "d44b94e1-957f-4464-913a-2e85547edd43",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "❌ Cidade não encontrada. Utilize apenas o nome da cidade (ex. São Paulo).",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1120,
+        -176
+      ],
+      "id": "008941b8-6ec4-411d-af85-5873c505582f",
+      "name": "Mensagem de erro",
+      "webhookId": "691b9a0c-f421-4fa4-bdaf-74e1d03eec64",
+      "credentials": {
+        "telegramApi": {
+          "id": "Gnr1ekVDXHI6RToS",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "0ef4505a-4090-42f2-9516-47378d6a1380",
+              "name": "=fallback_message",
+              "value": "=🌤️ A temperatura em {{ $json.name }} é de {{ Math.round($json.main.temp) }}°C.",
+              "type": "string"
+            },
+            {
+              "id": "36235b22-918c-4810-803b-21f7792ffdb2",
+              "name": "=fallback_weather",
+              "value": "=Clima: {{ $json.weather[0].main }}, descrição: {{ $json.weather[0].description }}.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1120,
+        -368
+      ],
+      "id": "8984b6a0-abfb-483e-9188-227bd50e8bd7",
+      "name": "Preparar Fallback",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Reescreva a seguinte mensagem de clima de forma natural em português do Brasil (PT-BR), mantendo os dados exatos.\n\nMensagem original: {{ $json.fallback_message }}, garanta que as informações {{ $json.fallback_weather }} sejam descritas para o usuário, como por exemplo, a descrição do clima.\n\nREGRAS ESTRITAS:\n1. Responda APENAS com um valor válido.\n2. Não inclua formatação markdown, não adicione saudações, nem explicações.\n3. Se a \"Mensagem original\" estiver incompleta, sem o nome da cidade ou sem a temperatura, não tente corrigir ou avisar.\n\nFormato de saída esperado: {\"message\": \"texto reescrito aqui\", \"ok\": true}"
+            }
+          ]
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        1344,
+        -368
+      ],
+      "id": "8abeeb71-213e-4a3e-a63f-6cdaaa2a1902",
+      "name": "Tratamento da mensagem",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "MSzZ10I8RSWbLxQG",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.final_message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2144,
+        -464
+      ],
+      "id": "e9904efb-997f-4db7-8135-8d6ab229fbb5",
+      "name": "Envio mensagem final",
+      "webhookId": "8b377306-f973-45f8-8f61-0659be6ff9cf",
+      "credentials": {
+        "telegramApi": {
+          "id": "Gnr1ekVDXHI6RToS",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "26758c23-3610-412b-ad4a-002988a6a9e7",
+              "leftValue": "={{ JSON.parse($json.content.parts[0].text).message }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1696,
+        -368
+      ],
+      "id": "066541fd-4ae8-46df-a055-9b7c33c88a54",
+      "name": "Validação Gemini"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22797750-b12b-4bba-b25a-d2885588f70b",
+              "name": "final_message",
+              "value": "={{ JSON.parse($json.content.parts[0].text).message }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1920,
+        -464
+      ],
+      "id": "6aada18d-e62e-40c7-ad4d-347e2925afdd",
+      "name": "Mensagem Final Success"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $('Preparar Fallback').item.json.fallback_message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1920,
+        -272
+      ],
+      "id": "50095f5c-51c9-46d4-86f5-793da66d2099",
+      "name": "Envio de mensagem fallback direta",
+      "webhookId": "8b377306-f973-45f8-8f61-0659be6ff9cf",
+      "credentials": {
+        "telegramApi": {
+          "id": "Gnr1ekVDXHI6RToS",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Call 'message-buffer'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'message-buffer'": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Preparar Fallback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensagem de erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Fallback": {
+      "main": [
+        [
+          {
+            "node": "Tratamento da mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validação Gemini": {
+      "main": [
+        [
+          {
+            "node": "Mensagem Final Success",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Envio de mensagem fallback direta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensagem Final Success": {
+      "main": [
+        [
+          {
+            "node": "Envio mensagem final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tratamento da mensagem": {
+      "main": [
+        [
+          {
+            "node": "Validação Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "aedb7d64-2b17-49e4-856a-554ae370c66d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b75770592b1d82b2ce40fa4ac248cf19ce6fbf409a5857876b5f69cd6100a35c"
+  },
+  "id": "YO2npMf9DixwKoCQ",
+  "tags": []
+}
